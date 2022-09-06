@@ -14,18 +14,11 @@ void MPI_BcastInt(
   int rank, size;
   MPI_Comm_rank(comm, &rank);
   MPI_Comm_size(comm, &size);
-//  std::vector<MPI_Request> req(size);
   if (rank == root) {
     for (int i = 0; i < size; i++) {
       if (i == root) { continue; }
       MPI_Send(tab, count, MPI_INT, i, 0, comm);
-// Solution avec Isend au lieu de Send en commentaire
-//      MPI_Isend(tab, count, MPI_INT, i, 0, comm, &req[i]);
     }
-//    for (int i = 0; i < size; i++) {
-//      if (i == root) { continue; }
-//      MPI_Wait(&req[i], MPI_STATUS_IGNORE);
-//    }
   } else {
     MPI_Recv(tab, count, MPI_INT, root, 0, comm, MPI_STATUS_IGNORE);
   }
