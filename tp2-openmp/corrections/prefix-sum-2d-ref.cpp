@@ -27,20 +27,46 @@ int main(int argc, char **argv)
   // Version 1: Avec boucle omp for. On peut faire collapse pour deux boucles car chaque iteration (i, j) est
   // independante
   // TODO / A FAIRE ...
+#pragma omp parallel default(none) shared(A)
+  {
+#pragma omp for collapse(2) 
   for (int i = 0; i < N; i++)
     for (int j = 0; j < N; j++)
       A[i][j] = i + j;
+  }
 
   // Version 2: Using tasks, each task initializes a block of size K x K. There are (N / K) x (N / K) tasks in total
   // Version 2: Avec taches, chaque tache initialise un bloc de taille K x K. Il y a (N / K) x (N / K) taches au total
   // TODO / A FAIRE ...
-
+#pragma omp parallel default(none) shared(A)
+  {
+    // We can even create tasks in parallel since they have no dependencies
+    // On peut meme creer les taches en parallele car elle n'ont aucune dependence entr'eux
+#pragma omp for collapse(2)
+    for (int ti = 0; ti < NTASKS; ti++) {
+      for (int tj = 0; tj < NTASKS; tj++) {
+        // For a task, try to explicity specify the type of each variable used (except K which is a macro)
+        // ti and tj cannot be shared for the task as they keep changing in the loop, so we need a private copy. A can
+        // be shared as it is a constant pointer
+        // Pour chaque tache, il vaut mieux explicitement preciser le type de partage (sauf K car c'est un macro)
+        // ti et tj ne peuvent etre partages pour la tache car ils evoluent dans la foulee des iterations de la boucle,
+        // donc on a besoin d'une copie privee a part. A peut etre partage car c'est un pointeur constant
+#pragma omp task default(none) firstprivate(ti, tj) shared(A)
+        for (int i = ti * K; i < (ti + 1) * K; i++) {
+          for (int j = tj * K; j < (tj + 1) * K; j++) {
+            A[i][j] = i + j;
+          }
+        }
+      }
+    }
+  }
   if (N < 20) {
     printf("Array A:\n");
     printArray(A);
   }
 
-  // 
+  // Compute 
+
 #pragma omp parallel default(none) shared(A, B, deps)
   {
 #pragma omp single
